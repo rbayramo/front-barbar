@@ -1469,32 +1469,45 @@ body.dark-theme .triggers-card {
 
 /* Phone input */
 
+/* Phone input */
+
 .phone-input-row {
   display: flex;
-  gap: 8px;
   align-items: center;
-}
-
-.phone-country-select {
-  height: 44px;
+  width: 100%;
+  max-width: 100%;
   border-radius: 10px;
   border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+/* left dropdown */
+.phone-country-select {
+  height: 44px;
   padding: 0 10px;
   font-size: 13px;
   background: var(--bg-surface);
   color: var(--text-main);
+  border: none;
+  border-right: 1px solid var(--border-subtle);
+  border-radius: 0;
+  flex-shrink: 0;
 }
 
+/* right phone field */
 .phone-number-input {
   flex: 1;
+  min-width: 0;
   height: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--border-subtle);
   padding: 0 12px;
   font-size: 14px;
   background: var(--bg-surface);
   color: var(--text-main);
+  border: none;
+  border-radius: 0;
 }
+
 
 /* Contact form card inside sheet */
 
