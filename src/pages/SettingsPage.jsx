@@ -1,150 +1,327 @@
-import React, { useContext, useEffect, useState } from "react";
+// src/pages/SettingsPage.jsx
+import React, {
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
 import TopBar from "../components/TopBar";
 import BottomNav from "../components/BottomNav";
 import api from "../api/client";
 import { AuthContext } from "../context/AuthContext";
-import PhoneInputAz from "../components/PhoneInputAz";
 import TriggersScreen from "../components/TriggersScreen";
 
 export default function SettingsPage() {
-  const { barber, logout } = useContext(AuthContext);
-  const [form, setForm] = useState({
+  const { barber, login } = useContext(AuthContext);
+
+  const [activeTab, setActiveTab] = useState("profile");
+
+  // Profile form
+  const [profileForm, setProfileForm] = useState({
     shopName: "",
     phoneDigits: "",
-    defaultDuration: 30
+    defaultDuration: 30,
+    workDayStartMinutes: 8 * 60,
+    workDayEndMinutes: 20 * 60
   });
-  const [theme, setTheme] = useState("light");
+  const [profileError, setProfileError] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
 
+  // Services
+  const [services, setServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [serviceForm, setServiceForm] = useState({
+    name: "",
+    price: "",
+    durationMinutes: ""
+  });
+  const [serviceError, setServiceError] = useState("");
+
+  // Triggers
   const [triggers, setTriggers] = useState([]);
   const [triggerForm, setTriggerForm] = useState({
     type: "before_appointment",
-    offsetValue: 3,
+    offsetValue: 1,
     message: ""
   });
   const [triggerError, setTriggerError] = useState("");
 
-  const [activeSettingsView, setActiveSettingsView] = useState("main");
+  // Public URL copy state
+  const publicUrl = useMemo(() => {
+    if (!barber || !barber.id) return "";
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin.replace(/\/$/, "")
+        : "";
+    return origin ? `${origin}/b/${barber.id}` : "";
+  }, [barber]);
+
+  const [copyStatus, setCopyStatus] = useState("");
 
   useEffect(() => {
     if (!barber) return;
-
     const numbers = (barber.phone || "").replace(/\D/g, "");
-    const localDigits = numbers.startsWith("994") ? numbers.slice(3) : numbers;
+    const digits = numbers.startsWith("994") ? numbers.slice(3) : numbers;
 
-    setForm({
+    setProfileForm({
       shopName: barber.shopName || "",
-      phoneDigits: localDigits,
-      defaultDuration: barber.defaultDuration || 30
+      phoneDigits: digits,
+      defaultDuration: barber.defaultDuration || 30,
+      workDayStartMinutes:
+        typeof barber.workDayStartMinutes === "number"
+          ? barber.workDayStartMinutes
+          : 8 * 60,
+      workDayEndMinutes:
+        typeof barber.workDayEndMinutes === "number"
+          ? barber.workDayEndMinutes
+          : 20 * 60
     });
   }, [barber]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("bbTheme") || "light";
-    setTheme(saved);
-    document.body.classList.toggle("dark-theme", saved === "dark");
+    // Xidmətləri əvvəlcədən yükləyək
+    loadServices().catch((err) =>
+      console.error("load services in settings", err)
+    );
+    // Triggerləri də yükləyirik
+    loadTriggers().catch((err) =>
+      console.error("load triggers in settings", err)
+    );
   }, []);
 
-  useEffect(() => {
-    if (!barber) return;
-    loadTriggers();
-  }, [barber]);
+  async function loadServices() {
+    setServicesLoading(true);
+    try {
+      const res = await api.get("/services");
+      setServices(res.data || []);
+    } catch (err) {
+      console.error("settings load services", err);
+    } finally {
+      setServicesLoading(false);
+    }
+  }
 
   async function loadTriggers() {
     try {
       const res = await api.get("/triggers");
       setTriggers(res.data || []);
     } catch (err) {
-      console.error("load triggers", err);
+      console.error("settings load triggers", err);
     }
   }
 
-  async function handleSave(e) {
-    e.preventDefault();
+  function handleProfileTimeChange(field, value) {
+    const [hStr, mStr] = value.split(":");
+    const h = parseInt(hStr || "0", 10);
+    const m = parseInt(mStr || "0", 10);
+    const total = h * 60 + m;
+    setProfileForm((prev) => ({
+      ...prev,
+      [field]: total
+    }));
+  }
 
-    if (form.phoneDigits.length !== 0 && form.phoneDigits.length !== 9) {
-      alert("Telefon nömrəsi tam doldurulmalıdır (9 rəqəm) və ya boş buraxın.");
+  function toTimeInputValue(minutes) {
+    const safe = typeof minutes === "number" ? minutes : 0;
+    const h = Math.floor(safe / 60)
+      .toString()
+      .padStart(2, "0");
+    const m = (safe % 60).toString().padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
+  async function handleSaveProfile(e) {
+    e.preventDefault();
+    setProfileError("");
+
+    if (!profileForm.shopName.trim()) {
+      setProfileError("Salon adı tələb olunur.");
+      return;
+    }
+
+    if (profileForm.phoneDigits.replace(/\D/g, "").length !== 9) {
+      setProfileError(
+        "Telefon nömrəsi tam doldurulmalıdır (9 rəqəm, +994 olmadan)."
+      );
+      return;
+    }
+
+    const payload = {
+      shopName: profileForm.shopName.trim(),
+      phone: "+994" + profileForm.phoneDigits.replace(/\D/g, ""),
+      defaultDuration:
+        Number(profileForm.defaultDuration) > 0
+          ? Number(profileForm.defaultDuration)
+          : 30,
+      workDayStartMinutes: profileForm.workDayStartMinutes,
+      workDayEndMinutes: profileForm.workDayEndMinutes
+    };
+
+    setProfileSaving(true);
+    try {
+      const res = await api.put("/auth/me", payload);
+      // AuthContext-dəki bərbər məlumatını da yeniləyək
+      const token = localStorage.getItem("barberToken");
+      if (token && typeof login === "function") {
+        login(token, res.data);
+      }
+    } catch (err) {
+      console.error("save profile", err);
+      const msg =
+        err?.response?.data?.message ||
+        "Ayarları yadda saxlamaq mümkün olmadı.";
+      setProfileError(msg);
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  function openNewService() {
+    setEditingService(null);
+    setServiceForm({
+      name: "",
+      price: "",
+      durationMinutes: ""
+    });
+    setServiceError("");
+    setServiceModalOpen(true);
+  }
+
+  function openEditService(service) {
+    setEditingService(service);
+    setServiceForm({
+      name: service.name || "",
+      price: String(service.price ?? ""),
+      durationMinutes: String(service.durationMinutes ?? "")
+    });
+    setServiceError("");
+    setServiceModalOpen(true);
+  }
+
+  async function handleSaveService(e) {
+    e.preventDefault();
+    setServiceError("");
+
+    const name = serviceForm.name.trim();
+    const price = Number(serviceForm.price);
+    const duration = Number(serviceForm.durationMinutes);
+
+    if (!name) {
+      setServiceError("Xidmət adı tələb olunur.");
+      return;
+    }
+    if (!price || price <= 0) {
+      setServiceError("Qiymət düzgün daxil edilməyib.");
+      return;
+    }
+    if (!duration || duration <= 0) {
+      setServiceError("Müddət düzgün daxil edilməyib.");
       return;
     }
 
     try {
-      const phone =
-        form.phoneDigits.length === 9 ? "+994" + form.phoneDigits : "";
-
-      await api.put("/auth/me", {
-        shopName: form.shopName,
-        phone,
-        defaultDuration: form.defaultDuration
-      });
-      alert("Yadda saxlandı.");
+      if (editingService && editingService._id) {
+        await api.put(`/services/${editingService._id}`, {
+          name,
+          price,
+          durationMinutes: duration
+        });
+      } else {
+        await api.post("/services", {
+          name,
+          price,
+          durationMinutes: duration
+        });
+      }
+      await loadServices();
+      setServiceModalOpen(false);
     } catch (err) {
-      console.error("save settings", err);
-      alert("Yadda saxlamaq mümkün olmadı.");
+      console.error("save service", err);
+      const msg =
+        err?.response?.data?.message ||
+        "Xidməti yadda saxlamaq mümkün olmadı.";
+      setServiceError(msg);
     }
   }
 
-  function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    localStorage.setItem("bbTheme", next);
-    document.body.classList.toggle("dark-theme", next === "dark");
+  async function handleDeleteService(service) {
+    if (!service || !service._id) return;
+    try {
+      await api.delete(`/services/${service._id}`);
+      await loadServices();
+    } catch (err) {
+      console.error("delete service", err);
+    }
   }
 
-  async function handleTriggerSave(e) {
+  async function handleSaveTrigger(e) {
     e.preventDefault();
     setTriggerError("");
 
-    if (!triggerForm.message.trim()) {
+    const type = triggerForm.type || "before_appointment";
+    const offsetValue = Number(triggerForm.offsetValue) || 1;
+    const message = (triggerForm.message || "").trim();
+
+    if (!message) {
       setTriggerError("Mesaj mətni boş ola bilməz.");
       return;
     }
 
-    try {
-      if (triggerForm.type === "before_appointment") {
-        await api.post("/triggers", {
-          type: "before_appointment",
-          offsetMinutes: triggerForm.offsetValue * 60,
-          message: triggerForm.message,
-          active: true
-        });
-      } else {
-        await api.post("/triggers", {
-          type: "after_last_visit",
-          offsetDays: triggerForm.offsetValue,
-          message: triggerForm.message,
-          active: true
-        });
-      }
+    let payload = {
+      type,
+      message,
+      active: true
+    };
 
+    if (type === "before_appointment") {
+      payload.offsetMinutes = offsetValue * 60;
+    } else {
+      payload.offsetDays = offsetValue;
+    }
+
+    try {
+      await api.post("/triggers", payload);
       setTriggerForm({
-        ...triggerForm,
+        type,
+        offsetValue,
         message: ""
       });
       await loadTriggers();
     } catch (err) {
       console.error("save trigger", err);
-      setTriggerError("Triggeri yadda saxlamaq mümkün olmadı.");
+      const msg =
+        err?.response?.data?.message ||
+        "Qaydanı yadda saxlamaq mümkün olmadı.";
+      setTriggerError(msg);
     }
   }
 
-  async function toggleTriggerActive(trigger) {
+  async function handleToggleTrigger(trigger) {
+    if (!trigger || !trigger._id) return;
+    const payload = {
+      type: trigger.type,
+      message: trigger.message,
+      active: !trigger.active
+    };
+
+    if (trigger.type === "before_appointment") {
+      payload.offsetMinutes = trigger.offsetMinutes;
+    } else if (trigger.type === "after_last_visit") {
+      payload.offsetDays = trigger.offsetDays;
+    }
+
     try {
-      await api.put(`/triggers/${trigger._id}`, {
-        type: trigger.type,
-        message: trigger.message,
-        active: !trigger.active,
-        offsetMinutes: trigger.offsetMinutes,
-        offsetDays: trigger.offsetDays
-      });
+      await api.put(`/triggers/${trigger._id}`, payload);
       await loadTriggers();
     } catch (err) {
       console.error("toggle trigger", err);
     }
   }
 
-  async function deleteTrigger(trigger) {
-    if (!window.confirm("Bu triggeri silmək istədiyinizə əminsiniz?")) {
-      return;
-    }
+  async function handleDeleteTrigger(trigger) {
+    if (!trigger || !trigger._id) return;
     try {
       await api.delete(`/triggers/${trigger._id}`);
       await loadTriggers();
@@ -153,150 +330,408 @@ export default function SettingsPage() {
     }
   }
 
-  if (!barber) return null;
+  async function handleCopyUrl() {
+    if (!publicUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopyStatus("Link kopyalandı.");
+      setTimeout(() => setCopyStatus(""), 2000);
+    } catch (err) {
+      console.error("copy url", err);
+      setCopyStatus("Linki kopyalamaq alınmadı.");
+      setTimeout(() => setCopyStatus(""), 2000);
+    }
+  }
 
-  const initials = barber.name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2);
-
-  const activeTriggersCount = triggers.filter((t) => t.active).length;
-  const activeTriggersLabel =
-    activeTriggersCount === 0
-      ? "Aktiv qayda yoxdur"
-      : activeTriggersCount === 1
-      ? "1 aktiv qayda"
-      : activeTriggersCount + " aktiv qayda";
+  function handleSignOut() {
+    try {
+      localStorage.removeItem("barberToken");
+    } catch (e) {
+      // ignore
+    }
+    window.location.href = "/login";
+  }
 
   return (
     <div className="app-shell">
       <TopBar title="Ayarlar" />
       <div className="app-content">
-        {activeSettingsView === "main" && (
+        <div className="settings-tabs">
+          <button
+            type="button"
+            className={
+              activeTab === "profile"
+                ? "settings-tab active"
+                : "settings-tab"
+            }
+            onClick={() => setActiveTab("profile")}
+          >
+            Salon
+          </button>
+          <button
+            type="button"
+            className={
+              activeTab === "services"
+                ? "settings-tab active"
+                : "settings-tab"
+            }
+            onClick={() => setActiveTab("services")}
+          >
+            Xidmətlər
+          </button>
+          <button
+            type="button"
+            className={
+              activeTab === "triggers"
+                ? "settings-tab active"
+                : "settings-tab"
+            }
+            onClick={() => setActiveTab("triggers")}
+          >
+            Avtomatik mesajlar
+          </button>
+        </div>
+
+        {activeTab === "profile" && (
           <>
-            <div className="profile-card">
-              <div className="avatar-large">{initials}</div>
-              <div className="profile-name">{barber.shopName}</div>
-              <div className="profile-plan">
-                Plan:
-                <span
-                  className={
-                    barber.isPaid ? "plan-pill paid" : "plan-pill free"
-                  }
-                >
-                  {barber.isPaid ? "Ödənişli" : "Ödənişsiz"}
-                </span>
+            {/* Public URL card */}
+            <div className="settings-card">
+              <div className="settings-card-header">
+                <div className="settings-card-title">
+                  Onlayn rezervasiya linki
+                </div>
+                <div className="settings-card-subtitle">
+                  Bu linki müştərilərə göndərin, onlar login olmadan
+                  online görüş yaza bilərlər.
+                </div>
+              </div>
+              <div className="field-row">
+                <label className="field-label">Publik link</label>
+                <div className="public-link-row">
+                  <input
+                    className="text-input"
+                    readOnly
+                    value={publicUrl || ""}
+                  />
+                  <button
+                    type="button"
+                    className="secondary-btn"
+                    onClick={handleCopyUrl}
+                    disabled={!publicUrl}
+                  >
+                    Kopyala
+                  </button>
+                </div>
+                {copyStatus && (
+                  <div className="helper-text">{copyStatus}</div>
+                )}
               </div>
             </div>
 
-            <div className="theme-toggle-row">
-              <div>
-                <div className="theme-toggle-title">Görünüş</div>
-                <div className="theme-toggle-subtitle">
-                  İşıqlı və qaranlıq rejim arasında keçid edin.
+            {/* Profile form */}
+            <div className="settings-card">
+              <div className="settings-card-header">
+                <div className="settings-card-title">
+                  Salon məlumatları
+                </div>
+                <div className="settings-card-subtitle">
+                  Salon adını, əlaqə nömrəsini və iş saatlarını tənzimləyin.
                 </div>
               </div>
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={toggleTheme}
-              >
-                {theme === "dark" ? "İşıqlı rejim" : "Qaranlıq rejim"}
-              </button>
-            </div>
 
-            {/* Modern settings navigation row for triggers */}
-            <div className="settings-nav-list">
-              <button
-                type="button"
-                className="settings-nav-item"
-                onClick={() => setActiveSettingsView("triggers")}
-              >
-                <div className="settings-nav-icon-badge">
-                  <span aria-hidden="true">⚡</span>
+              <form onSubmit={handleSaveProfile}>
+                <div className="field-row">
+                  <label className="field-label">Salon adı</label>
+                  <input
+                    className="text-input full"
+                    value={profileForm.shopName}
+                    onChange={(e) =>
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        shopName: e.target.value
+                      }))
+                    }
+                  />
                 </div>
-                <div className="settings-nav-text">
-                  <div className="settings-nav-label-row">
-                    <div className="settings-nav-label">Avtomatik mesajlar</div>
-                    <div className="settings-nav-pill">
-                      {activeTriggersLabel}
+
+                <div className="field-row">
+                  <label className="field-label">Telefon nömrəsi</label>
+                  <div className="phone-input-row">
+                    <select
+                      className="phone-country-select"
+                      value="+994"
+                      onChange={() => {}}
+                    >
+                      <option value="+994">
+                        Azərbaycan (+994)
+                      </option>
+                    </select>
+                    <input
+                      className="phone-number-input"
+                      type="tel"
+                      value={profileForm.phoneDigits}
+                      onChange={(e) =>
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          phoneDigits: e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 9)
+                        }))
+                      }
+                      placeholder="(__) ___ __ __"
+                    />
+                  </div>
+                </div>
+
+                <div className="field-row">
+                  <label className="field-label">İş saatları</label>
+                  <div className="work-hours-row">
+                    <div className="work-hours-item">
+                      <span>Başlanğıc</span>
+                      <input
+                        className="text-input"
+                        type="time"
+                        value={toTimeInputValue(
+                          profileForm.workDayStartMinutes
+                        )}
+                        onChange={(e) =>
+                          handleProfileTimeChange(
+                            "workDayStartMinutes",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <span className="time-separator">–</span>
+                    <div className="work-hours-item">
+                      <span>Bitmə</span>
+                      <input
+                        className="text-input"
+                        type="time"
+                        value={toTimeInputValue(
+                          profileForm.workDayEndMinutes
+                        )}
+                        onChange={(e) =>
+                          handleProfileTimeChange(
+                            "workDayEndMinutes",
+                            e.target.value
+                          )
+                        }
+                      />
                     </div>
                   </div>
-                  <div className="settings-nav-description">
-                    Görüşdən əvvəl və sonra WhatsApp xatırlatmaları.
-                  </div>
                 </div>
-                <div className="settings-nav-chevron" aria-hidden="true">
-                  ›
+
+                {profileError && (
+                  <div className="error-text">{profileError}</div>
+                )}
+
+                <div className="sheet-footer">
+                  <button
+                    type="submit"
+                    className="primary-btn"
+                    disabled={profileSaving}
+                  >
+                    {profileSaving
+                      ? "Yadda saxlanır..."
+                      : "Ayarları yadda saxla"}
+                  </button>
                 </div>
-              </button>
+              </form>
             </div>
 
-            <form className="settings-form" onSubmit={handleSave}>
-              <label className="field-label">Salonun adı</label>
-              <input
-                className="text-input"
-                value={form.shopName}
-                onChange={(e) =>
-                  setForm({ ...form, shopName: e.target.value })
-                }
-              />
-
-              <label className="field-label">Telefon nömrəsi</label>
-              <PhoneInputAz
-                value={form.phoneDigits}
-                onChange={(val) =>
-                  setForm({ ...form, phoneDigits: val })
-                }
-              />
-
-              <label className="field-label">
-                Varsayılan görüş müddəti (dəq)
-              </label>
-              <select
-                className="text-input"
-                value={form.defaultDuration}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    defaultDuration: Number(e.target.value)
-                  })
-                }
+            {/* Sign out card */}
+            <div className="settings-card">
+              <div className="settings-card-header">
+                <div className="settings-card-title">Hesab</div>
+                <div className="settings-card-subtitle">
+                  Sistemdən çıxmaq üçün aşağıdakı düyməni istifadə edin.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="danger-outline-btn"
+                onClick={handleSignOut}
               >
-                <option value={15}>15 dəq</option>
-                <option value={30}>30 dəq</option>
-                <option value={45}>45 dəq</option>
-                <option value={60}>60 dəq</option>
-                <option value={120}>120 dəq</option>
-                <option value={240}>240 dəq</option>
-              </select>
-
-              <button type="submit" className="primary-btn full">
-                Yadda saxla
+                Hesabdan çıx
               </button>
-            </form>
-
-            <button
-              type="button"
-              className="danger-outline-btn full mt-16"
-              onClick={logout}
-            >
-              Hesabdan çıx
-            </button>
+            </div>
           </>
         )}
 
-        {activeSettingsView === "triggers" && (
+        {activeTab === "services" && (
+          <div className="settings-card">
+            <div className="settings-card-header">
+              <div className="settings-card-title">Xidmətlər</div>
+              <div className="settings-card-subtitle">
+                Məhsul (Saç, Saqqal, paket və s.) siyahısını idarə edin.
+              </div>
+            </div>
+
+            <div className="settings-services-header">
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={openNewService}
+              >
+                Yeni xidmət
+              </button>
+            </div>
+
+            {servicesLoading && (
+              <div className="empty-text small">Yüklənir...</div>
+            )}
+
+            {!servicesLoading && services.length === 0 && (
+              <div className="empty-text small">
+                Hələ xidmət yoxdur. “Yeni xidmət” düyməsi ilə əlavə edə
+                bilərsiniz.
+              </div>
+            )}
+
+            {!servicesLoading &&
+              services.map((s) => (
+                <div key={s._id} className="service-row">
+                  <div className="service-main">
+                    <div className="service-name">{s.name}</div>
+                    <div className="service-meta">
+                      <span className="service-pill">
+                        {s.price} ₼
+                      </span>
+                      <span className="service-pill soft">
+                        {s.durationMinutes} dəq
+                      </span>
+                    </div>
+                  </div>
+                  <div className="service-actions">
+                    <button
+                      type="button"
+                      className="secondary-btn small"
+                      onClick={() => openEditService(s)}
+                    >
+                      Redaktə et
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-outline-btn small"
+                      onClick={() => handleDeleteService(s)}
+                    >
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            {serviceModalOpen && (
+              <div
+                className="modal-backdrop"
+                onClick={() => setServiceModalOpen(false)}
+              >
+                <div
+                  className="bottom-sheet"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="sheet-header">
+                    <div className="sheet-title">
+                      {editingService
+                        ? "Xidməti redaktə et"
+                        : "Yeni xidmət"}
+                    </div>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => setServiceModalOpen(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="sheet-content">
+                    <form onSubmit={handleSaveService}>
+                      <div className="field-row">
+                        <label className="field-label">
+                          Xidmət adı
+                        </label>
+                        <input
+                          className="text-input full"
+                          value={serviceForm.name}
+                          onChange={(e) =>
+                            setServiceForm((prev) => ({
+                              ...prev,
+                              name: e.target.value
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="field-row">
+                        <label className="field-label">Qiymət (₼)</label>
+                        <input
+                          className="text-input"
+                          type="number"
+                          min={1}
+                          value={serviceForm.price}
+                          onChange={(e) =>
+                            setServiceForm((prev) => ({
+                              ...prev,
+                              price: e.target.value
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="field-row">
+                        <label className="field-label">
+                          Müddət (dəqiqə)
+                        </label>
+                        <input
+                          className="text-input"
+                          type="number"
+                          min={5}
+                          value={serviceForm.durationMinutes}
+                          onChange={(e) =>
+                            setServiceForm((prev) => ({
+                              ...prev,
+                              durationMinutes: e.target.value
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {serviceError && (
+                        <div className="error-text">{serviceError}</div>
+                      )}
+
+                      <div className="sheet-footer">
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => setServiceModalOpen(false)}
+                        >
+                          Bağla
+                        </button>
+                        <button
+                          type="submit"
+                          className="primary-btn"
+                        >
+                          Yadda saxla
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "triggers" && (
           <TriggersScreen
-            onBack={() => setActiveSettingsView("main")}
+            onBack={null}
             triggers={triggers}
             triggerForm={triggerForm}
             setTriggerForm={setTriggerForm}
             triggerError={triggerError}
-            onSaveTrigger={handleTriggerSave}
-            onToggleTrigger={toggleTriggerActive}
-            onDeleteTrigger={deleteTrigger}
+            onSaveTrigger={handleSaveTrigger}
+            onToggleTrigger={handleToggleTrigger}
+            onDeleteTrigger={handleDeleteTrigger}
           />
         )}
       </div>

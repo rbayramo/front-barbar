@@ -1,3 +1,4 @@
+// src/components/AppointmentModal.jsx
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import api from "../api/client";
@@ -16,6 +17,10 @@ export default function AppointmentModal({
   const [date, setDate] = useState(initialDate || new Date());
   const [time, setTime] = useState("10:00");
   const [duration, setDuration] = useState(30);
+  const [manualDuration, setManualDuration] = useState(false);
+
+  const [services, setServices] = useState([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -25,6 +30,19 @@ export default function AppointmentModal({
   const [newName, setNewName] = useState("");
   const [newPhoneDigits, setNewPhoneDigits] = useState("");
   const [error, setError] = useState("");
+
+  // Xidmətləri modal açılan kimi yüklə
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const res = await api.get("/services");
+        setServices(res.data || []);
+      } catch (err) {
+        console.error("load services", err);
+      }
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -44,11 +62,24 @@ export default function AppointmentModal({
       if (appointment.customer) {
         setSelectedCustomer(appointment.customer);
       }
+
+      if (Array.isArray(appointment.services)) {
+        const idsFromAppt = appointment.services
+          .map((s) => (s.service ? String(s.service) : null))
+          .filter(Boolean);
+        setSelectedServiceIds(idsFromAppt);
+        setManualDuration(false);
+      } else {
+        setSelectedServiceIds([]);
+        setManualDuration(false);
+      }
     } else if (initialDate) {
       setDate(initialDate);
       setTime(format(initialDate, "HH:mm"));
       setDuration(30);
       setSelectedCustomer(null);
+      setSelectedServiceIds([]);
+      setManualDuration(false);
     }
 
     setSearch("");
@@ -58,6 +89,27 @@ export default function AppointmentModal({
     setNewPhoneDigits("");
     setError("");
   }, [open, appointment, initialDate]);
+
+  // Xidmətlər dəyişəndə və manualDuration = false olanda müddəti avtomatik doldur
+  useEffect(() => {
+    if (!open) return;
+    if (manualDuration) return;
+
+    if (selectedServiceIds.length === 0) {
+      return;
+    }
+
+    const chosen = services.filter((s) =>
+      selectedServiceIds.includes(String(s._id))
+    );
+    const total = chosen.reduce(
+      (sum, s) => sum + (s.durationMinutes || 0),
+      0
+    );
+    if (total > 0) {
+      setDuration(total);
+    }
+  }, [open, manualDuration, services, selectedServiceIds]);
 
   useEffect(() => {
     if (!search.trim()) {
@@ -116,6 +168,17 @@ export default function AppointmentModal({
     }
   }
 
+  function handleToggleService(id) {
+    setSelectedServiceIds((prev) => {
+      const strId = String(id);
+      if (prev.includes(strId)) {
+        return prev.filter((x) => x !== strId);
+      }
+      return [...prev, strId];
+    });
+    setManualDuration(false);
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     setError("");
@@ -132,7 +195,8 @@ export default function AppointmentModal({
         startTime: toUtcIso(localStart),
         endTime: toUtcIso(localEnd),
         durationMinutes: duration,
-        customerId: customer._id
+        customerId: customer._id,
+        serviceIds: selectedServiceIds
       };
 
       if (appointment && appointment._id) {
@@ -145,7 +209,10 @@ export default function AppointmentModal({
       onClose();
     } catch (err) {
       console.error("save appointment", err);
-      setError("Görüşü yadda saxlamaq mümkün olmadı.");
+      const msg =
+        err?.response?.data?.message ||
+        "Görüşü yadda saxlamaq mümkün olmadı.";
+      setError(msg);
     }
   }
 
@@ -203,13 +270,43 @@ export default function AppointmentModal({
                       key={d}
                       type="button"
                       className={d === duration ? "chip active" : "chip"}
-                      onClick={() => setDuration(d)}
+                      onClick={() => {
+                        setDuration(d);
+                        setManualDuration(true);
+                      }}
                     >
                       {d} dəq
                     </button>
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div className="field-row">
+              <label className="field-label">Xidmətlər</label>
+              {services.length === 0 ? (
+                <div className="empty-text small">
+                  Hələ xidmət əlavə etməmisiniz. Xidmətləri "Ayarlar" →
+                  "Xidmətlər" bölməsindən yarada bilərsiniz.
+                </div>
+              ) : (
+                <div className="duration-chips">
+                  {services.map((s) => {
+                    const id = String(s._id);
+                    const isSelected = selectedServiceIds.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        className={isSelected ? "chip active" : "chip"}
+                        onClick={() => handleToggleService(id)}
+                      >
+                        {s.name} · {s.price} ₼ · {s.durationMinutes} dəq
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="field-row">

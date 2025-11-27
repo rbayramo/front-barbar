@@ -1,17 +1,19 @@
-import React from "react";
+// src/components/DayGrid.jsx
+import React, { useContext, useMemo } from "react";
 import { format, isSameDay } from "date-fns";
+import { AuthContext } from "../context/AuthContext";
 
-function buildSlots() {
+const SLOT_MINUTES = 30;
+
+function buildSlots(startMinutes, endMinutes) {
   const slots = [];
-  for (let h = 8; h < 20; h++) {
-    slots.push({ hour: h, minute: 0 });
-    slots.push({ hour: h, minute: 30 });
+  for (let m = startMinutes; m < endMinutes; m += SLOT_MINUTES) {
+    const hour = Math.floor(m / 60);
+    const minute = m % 60;
+    slots.push({ hour, minute });
   }
   return slots;
 }
-
-const SLOTS = buildSlots();
-const SLOT_MINUTES = 30;
 
 export default function DayGrid({
   date,
@@ -19,6 +21,31 @@ export default function DayGrid({
   onEmptySlotClick,
   onAppointmentClick
 }) {
+  const auth = useContext(AuthContext);
+  const barber = auth && auth.barber ? auth.barber : null;
+
+  const defaultStart = 8 * 60;
+  const defaultEnd = 20 * 60;
+
+  let startMinutes =
+    barber && typeof barber.workDayStartMinutes === "number"
+      ? barber.workDayStartMinutes
+      : defaultStart;
+  let endMinutes =
+    barber && typeof barber.workDayEndMinutes === "number"
+      ? barber.workDayEndMinutes
+      : defaultEnd;
+
+  if (endMinutes <= startMinutes) {
+    startMinutes = defaultStart;
+    endMinutes = defaultEnd;
+  }
+
+  const slots = useMemo(
+    () => buildSlots(startMinutes, endMinutes),
+    [startMinutes, endMinutes]
+  );
+
   function slotTime(slot) {
     const d = new Date(date);
     d.setHours(slot.hour, slot.minute, 0, 0);
@@ -42,7 +69,7 @@ export default function DayGrid({
 
   return (
     <div className="day-grid-card">
-      {SLOTS.map((slot) => {
+      {slots.map((slot) => {
         const d = slotTime(slot);
         const appt = findAppointmentAt(d);
         const label = format(d, "HH:mm");
@@ -55,6 +82,7 @@ export default function DayGrid({
         let customerPhone = "";
         let startLabel = "";
         let endLabel = "";
+        let servicesLabel = "";
 
         if (hasAppointment) {
           const startLocal = new Date(appt.startTime);
@@ -84,6 +112,18 @@ export default function DayGrid({
             appt.customer && appt.customer.phone ? appt.customer.phone : "";
           startLabel = format(startLocal, "HH:mm");
           endLabel = format(endLocal, "HH:mm");
+
+          const servicesArray = appt.services || [];
+          if (servicesArray.length === 1) {
+            servicesLabel = servicesArray[0].name || "";
+          } else if (servicesArray.length > 1) {
+            const firstName = servicesArray[0].name || "";
+            const extraCount = servicesArray.length - 1;
+            servicesLabel =
+              extraCount > 0
+                ? `${firstName} +${extraCount}`
+                : firstName;
+          }
         }
 
         return (
@@ -91,7 +131,9 @@ export default function DayGrid({
             <div className="time-label">{label}</div>
             <button
               type="button"
-              className={hasAppointment ? "slot has-appointment" : "slot empty-slot"}
+              className={
+                hasAppointment ? "slot has-appointment" : "slot empty-slot"
+              }
               onClick={() => {
                 if (hasAppointment) {
                   onAppointmentClick(appt);
@@ -100,34 +142,42 @@ export default function DayGrid({
                 }
               }}
             >
-            {hasAppointment &&
-              (isFirst ? (
-                <div
-                  className={
-                    isSingle
-                      ? "appointment-pill appointment-single"
-                      : "appointment-pill"
-                  }
-                >
-                  <div className="appointment-name">{customerName}</div>
-                  <div className="appointment-meta">
-                    {startLabel} – {endLabel}
+              {hasAppointment &&
+                (isFirst ? (
+                  <div
+                    className={
+                      isSingle
+                        ? "appointment-pill appointment-single"
+                        : "appointment-pill"
+                    }
+                  >
+                    <div className="appointment-name">{customerName}</div>
+                    <div className="appointment-meta">
+                      {startLabel} – {endLabel}
+                    </div>
+                    {servicesLabel && (
+                      <div
+                        className="appointment-service"
+                        style={{ fontSize: 11, opacity: 0.9 }}
+                      >
+                        {servicesLabel}
+                      </div>
+                    )}
+                    {customerPhone && (
+                      <div className="appointment-phone">
+                        {customerPhone}
+                      </div>
+                    )}
                   </div>
-                  {customerPhone && (
-                    <div className="appointment-phone">{customerPhone}</div>
-                  )}
-                </div>
-              ) : (
-                // keep the extension block exactly as you have it
-                <div
-                  className={
-                    isLast
-                      ? "appointment-extension appointment-extension-last"
-                      : "appointment-extension"
-                  }
-                />
-              ))}
-
+                ) : (
+                  <div
+                    className={
+                      isLast
+                        ? "appointment-extension appointment-extension-last"
+                        : "appointment-extension"
+                    }
+                  />
+                ))}
             </button>
           </div>
         );

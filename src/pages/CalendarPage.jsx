@@ -22,6 +22,7 @@ export default function CalendarPage() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedAppt, setSelectedAppt] = useState(null);
   const [editingAppt, setEditingAppt] = useState(null);
+  const [subscriptionBlocked, setSubscriptionBlocked] = useState(null);
 
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
@@ -43,9 +44,25 @@ export default function CalendarPage() {
       });
       console.log("appointments via", api.defaults.baseURL, res.status, res.data);
       setAppointments(res.data || []);
+      setSubscriptionBlocked(null);
     } catch (err) {
       console.error("load appointments", err);
-      setAppointments([]);
+      if (
+        err &&
+        err.response &&
+        err.response.data &&
+        err.response.data.code === "SUBSCRIPTION_EXPIRED"
+      ) {
+        setSubscriptionBlocked({
+          message:
+            err.response.data.message ||
+            "Abunəlik müddətiniz aktiv deyil."
+        });
+        setAppointments([]);
+      } else {
+        setSubscriptionBlocked(null);
+        setAppointments([]);
+      }
     }
   }
 
@@ -108,20 +125,51 @@ export default function CalendarPage() {
           onToday={handleToday}
         />
 
-        {view === "day" ? (
-          <DayGrid
-            date={date}
-            appointments={appointments}
-            onEmptySlotClick={handleEmptySlotClick}
-            onAppointmentClick={handleAppointmentClick}
-          />
+        {subscriptionBlocked ? (
+          <div className="screen-center">
+            <div className="contacts-section" style={{ maxWidth: 480 }}>
+              <div className="section-header">
+                <h2 className="section-title">Abunəlik aktiv deyil</h2>
+              </div>
+              <p className="empty-text">
+                {subscriptionBlocked.message}
+              </p>
+              <a
+                href="https://wa.me/994513315387?text=Salam%20Rashad%2C%20BarberBook%20abun%C9%99liyimi%20aktiv%20etm%C9%99k%20ist%C9%99yir%C9%99m."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="primary-btn"
+                style={{
+                  marginTop: 12,
+                  textAlign: "center",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingInline: 24
+                }}
+              >
+                WhatsApp ilə əlaqə saxla
+              </a>
+            </div>
+          </div>
         ) : (
-          <WeekGrid
-            weekStart={weekStart}
-            appointments={appointments}
-            onEmptySlotClick={handleEmptySlotClick}
-            onAppointmentClick={handleAppointmentClick}
-          />
+          <>
+            {view === "day" ? (
+              <DayGrid
+                date={date}
+                appointments={appointments}
+                onEmptySlotClick={handleEmptySlotClick}
+                onAppointmentClick={handleAppointmentClick}
+              />
+            ) : (
+              <WeekGrid
+                weekStart={weekStart}
+                appointments={appointments}
+                onEmptySlotClick={handleEmptySlotClick}
+                onAppointmentClick={handleAppointmentClick}
+              />
+            )}
+          </>
         )}
       </div>
 

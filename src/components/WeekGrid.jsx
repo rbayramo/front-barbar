@@ -1,5 +1,7 @@
-import React from "react";
+// src/components/WeekGrid.jsx
+import React, { useContext, useMemo } from "react";
 import { addDays, format } from "date-fns";
+import { AuthContext } from "../context/AuthContext";
 
 // Azerbaijani short weekday names, index 0 = Sunday
 const AZ_WEEKDAY_SHORT = ["B.", "B.e.", "Ç.a.", "Ç.", "C.a.", "C.", "Ş."];
@@ -8,17 +10,18 @@ function getAzWeekdayShortName(date) {
   return AZ_WEEKDAY_SHORT[date.getDay()];
 }
 
-
-function buildSlots() {
+// startMinutes / endMinutes bərbərin iş saatlarından gəlir
+function buildSlots(startMinutes, endMinutes) {
+  const SLOT_MINUTES = 30;
   const slots = [];
-  for (let h = 8; h < 20; h++) {
-    slots.push({ hour: h, minute: 0 });
-    slots.push({ hour: h, minute: 30 });
+  for (let m = startMinutes; m < endMinutes; m += SLOT_MINUTES) {
+    const hour = Math.floor(m / 60);
+    const minute = m % 60;
+    slots.push({ hour, minute });
   }
   return slots;
 }
 
-const SLOTS = buildSlots();
 const SLOT_MINUTES = 30;
 
 export default function WeekGrid({
@@ -27,6 +30,32 @@ export default function WeekGrid({
   onEmptySlotClick,
   onAppointmentClick
 }) {
+  const auth = useContext(AuthContext);
+  const barber = auth && auth.barber ? auth.barber : null;
+
+  const defaultStart = 8 * 60;
+  const defaultEnd = 20 * 60;
+
+  let startMinutes =
+    barber && typeof barber.workDayStartMinutes === "number"
+      ? barber.workDayStartMinutes
+      : defaultStart;
+  let endMinutes =
+    barber && typeof barber.workDayEndMinutes === "number"
+      ? barber.workDayEndMinutes
+      : defaultEnd;
+
+  // əgər nəsə səhv dəyərlərdirsə fallback 8–20
+  if (endMinutes <= startMinutes) {
+    startMinutes = defaultStart;
+    endMinutes = defaultEnd;
+  }
+
+  const slots = useMemo(
+    () => buildSlots(startMinutes, endMinutes),
+    [startMinutes, endMinutes]
+  );
+
   const days = Array.from({ length: 7 }).map((_, idx) =>
     addDays(weekStart, idx)
   );
@@ -52,10 +81,9 @@ export default function WeekGrid({
               <div className="week-day-date">{format(d, "d")}</div>
             </div>
           ))}
-
         </div>
 
-        {SLOTS.map((slot) => {
+        {slots.map((slot) => {
           const timeDate = new Date(weekStart);
           timeDate.setHours(slot.hour, slot.minute, 0, 0);
           const timeLabel = format(timeDate, "HH:mm");
@@ -77,12 +105,16 @@ export default function WeekGrid({
                 let customerPhone = "";
                 let startLabel = "";
                 let endLabel = "";
+                let servicesLabel = "";
 
                 if (hasAppointment) {
                   const startLocal = new Date(appt.startTime);
                   const endLocal = appt.endTime
                     ? new Date(appt.endTime)
-                    : new Date(startLocal.getTime() + SLOT_MINUTES * 60 * 1000);
+                    : new Date(
+                        startLocal.getTime() +
+                          SLOT_MINUTES * 60 * 1000
+                      );
 
                   const slotStart = slotDate;
                   const slotEnd = new Date(
@@ -106,6 +138,18 @@ export default function WeekGrid({
                       : "";
                   startLabel = format(startLocal, "HH:mm");
                   endLabel = format(endLocal, "HH:mm");
+
+                  const servicesArray = appt.services || [];
+                  if (servicesArray.length === 1) {
+                    servicesLabel = servicesArray[0].name || "";
+                  } else if (servicesArray.length > 1) {
+                    const firstName = servicesArray[0].name || "";
+                    const extraCount = servicesArray.length - 1;
+                    servicesLabel =
+                      extraCount > 0
+                        ? `${firstName} +${extraCount}`
+                        : firstName;
+                  }
                 }
 
                 return (
@@ -125,38 +169,48 @@ export default function WeekGrid({
                       }
                     }}
                   >
-                  {hasAppointment &&
-                    (isFirst ? (
-                      <div
-                        className={
-                          isSingle
-                            ? "week-appointment-pill appointment-single"
-                            : "week-appointment-pill"
-                        }
-                      >
-                        <div className="week-appointment-name">
-                          {customerName}
-                        </div>
-                        <div className="week-appointment-meta">
-                          {startLabel} – {endLabel}
-                        </div>
-                        {customerPhone && (
-                          <div className="week-appointment-phone">
-                            {customerPhone}
+                    {hasAppointment &&
+                      (isFirst ? (
+                        <div
+                          className={
+                            isSingle
+                              ? "week-appointment-pill appointment-single"
+                              : "week-appointment-pill"
+                          }
+                        >
+                          <div className="week-appointment-name">
+                            {customerName}
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      // keep the extension block exactly as it is
-                      <div
-                        className={
-                          isLast
-                            ? "week-appointment-extension appointment-extension-last"
-                            : "week-appointment-extension"
-                        }
-                      />
-                    ))}
-
+                          <div className="week-appointment-meta">
+                            {startLabel} – {endLabel}
+                          </div>
+                          {servicesLabel && (
+                            <div
+                              className="week-appointment-service"
+                              style={{
+                                fontSize: 11,
+                                opacity: 0.9
+                              }}
+                            >
+                              {servicesLabel}
+                            </div>
+                          )}
+                          {customerPhone && (
+                            <div className="week-appointment-phone">
+                              {customerPhone}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        // extension blokları eyni saxlayırıq
+                        <div
+                          className={
+                            isLast
+                              ? "week-appointment-extension appointment-extension-last"
+                              : "week-appointment-extension"
+                          }
+                        />
+                      ))}
                   </button>
                 );
               })}

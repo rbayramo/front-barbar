@@ -1,3 +1,4 @@
+// src/components/TopBar.jsx
 import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -29,9 +30,11 @@ function SettingsIcon() {
 }
 
 export default function TopBar({ title, subtitle }) {
-  const { barber } = useContext(AuthContext);
+  const ctx = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // Əgər context hələ qurulmayıbsa, barber məlumatı yoxdur kimi davranırıq
+  const barber = ctx?.barber;
   const displayName = barber?.name || barber?.shopName || "";
 
   return (

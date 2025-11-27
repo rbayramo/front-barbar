@@ -1,3 +1,4 @@
+// src/components/AppointmentDetailsModal.jsx
 import React, { useState } from "react";
 import { format } from "date-fns";
 import api from "../api/client";
@@ -20,6 +21,12 @@ export default function AppointmentDetailsModal({
     : new Date(startLocal.getTime() + 30 * 60 * 1000);
 
   const statusCancelled = appointment.status === "cancelled";
+  const customer = appointment.customer || {};
+  const statusLabel = statusCancelled ? "Ləğv olunub" : "Aktiv";
+
+  const services = Array.isArray(appointment.services)
+    ? appointment.services
+    : [];
 
   async function handleCancel() {
     if (statusCancelled) {
@@ -39,9 +46,6 @@ export default function AppointmentDetailsModal({
       setLoading(false);
     }
   }
-
-  const customer = appointment.customer || {};
-  const statusLabel = statusCancelled ? "Ləğv olunub" : "Aktiv";
 
   function handleEditClick() {
     if (onEdit) {
@@ -82,10 +86,47 @@ export default function AppointmentDetailsModal({
                 {statusLabel}
               </div>
             </div>
+
             <div className="details-date">
               {format(startLocal, "d MMM yyyy, HH:mm")} –{" "}
               {format(endLocal, "HH:mm")}
             </div>
+
+            {/* Xidmətlər */}
+            {services.length > 0 && (
+              <div className="details-services">
+                <div
+                  className="details-services-label"
+                  style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}
+                >
+                  Xidmətlər
+                </div>
+                <div
+                  className="details-services-list"
+                  style={{
+                    marginTop: 4,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 6
+                  }}
+                >
+                  {services.map((s, idx) => (
+                    <div
+                      key={s._id || s.service || idx}
+                      className="details-service-pill"
+                      style={{
+                        fontSize: 12,
+                        padding: "4px 8px",
+                        borderRadius: 999,
+                        border: "1px solid rgba(15,23,42,0.12)"
+                      }}
+                    >
+                      {s.name || "Xidmət"}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {error && <div className="error-text">{error}</div>}
