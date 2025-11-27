@@ -186,6 +186,7 @@ body.dark-theme .top-bar {
   backdrop-filter: blur(10px);
   display: flex;
   border-top: 1px solid var(--border-subtle);
+  z-index: 30;
 }
 
 body.dark-theme .bottom-nav {
