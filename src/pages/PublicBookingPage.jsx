@@ -639,45 +639,67 @@ export default function PublicBookingPage() {
 
             {/* XİDMƏTLƏR */}
             <section className="contacts-section">
-              <div className="section-header">
+            <div className="section-header">
                 <h2
-                  className="section-title"
-                  style={missingServices ? { color: "#ef4444" } : undefined}
+                className="section-title"
+                style={missingServices ? { color: "#ef4444" } : undefined}
                 >
-                  Xidmət seçin
+                Xidmət seçin
                 </h2>
-              </div>
-              {services.length === 0 ? (
+            </div>
+
+            <div
+                className={
+                missingServices
+                    ? "section-helper-text section-helper-text-error"
+                    : "section-helper-text"
+                }
+            >
+                Xidmət kartına toxunaraq seçin. Bir neçə xidməti eyni anda işarələyə bilərsiniz.
+            </div>
+
+            {services.length === 0 ? (
                 <div className="empty-text small">
-                  Bu bərbər üçün hələ xidmətlər əlavə olunmayıb.
+                Bu bərbər üçün hələ xidmətlər əlavə olunmayıb.
                 </div>
-              ) : (
+            ) : (
                 <div className="duration-chips">
-                  {services.map((s) => {
+                {services.map((s) => {
                     const id = String(s.id);
-                    const isSelected =
-                      selectedServiceIds.includes(id);
+                    const isSelected = selectedServiceIds.includes(id);
                     return (
-                      <button
+                    <button
                         key={id}
                         type="button"
-                        className={isSelected ? "chip active" : "chip"}
+                        className={isSelected ? "chip service-chip active" : "chip service-chip"}
                         onClick={() => handleServiceToggle(id)}
-                      >
-                        {s.name} · {s.price} ₼ ·{" "}
-                        {s.durationMinutes} dəq
-                      </button>
+                    >
+                        <span className="service-chip-check">
+                        {isSelected ? "✓" : "+"}
+                        </span>
+                        <span className="service-chip-main">{s.name}</span>
+                        <span className="service-chip-meta">
+                        {s.price} ₼ · {s.durationMinutes} dəq
+                        </span>
+                    </button>
                     );
-                  })}
+                })}
                 </div>
-              )}
+            )}
 
-              {totalDurationMinutes > 0 && (
+            {totalDurationMinutes > 0 && (
                 <div className="contact-frequency">
-                  Ümumi müddət: {totalDurationMinutes} dəqiqə
+                Ümumi müddət: {totalDurationMinutes} dəqiqə
                 </div>
-              )}
+            )}
+
+            {missingServices && services.length > 0 && (
+                <div className="error-text" style={{ marginTop: 6 }}>
+                Zəhmət olmasa ən azı bir xidmət seçin.
+                </div>
+            )}
             </section>
+
 
             {/* TARİX & SAAT */}
             <section className="contacts-section" style={{ marginTop: 12 }}>

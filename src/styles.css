@@ -2192,3 +2192,78 @@ body.dark-theme .booking-bottom-bar {
   font-size: 14px;
   margin: 4px 0;
 }
+
+
+/* Public booking – services selection helper */
+
+.section-helper-text {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.section-helper-text-error {
+  color: var(--danger);
+}
+
+/* Public booking – services chips daha “kart” kimi görünsün */
+.public-booking-content .duration-chips {
+  flex-direction: column;
+}
+
+/* yalnız xidmətlər üçün vizual */
+.service-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  text-align: left;
+  border-radius: 12px;
+}
+
+.service-chip:hover {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+body.dark-theme .service-chip:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* sol tərəfdə + / ✓ dairəsi */
+.service-chip-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  font-size: 12px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+/* seçiləndə dairəciyi doldururuq */
+.chip.active .service-chip-check {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* əsas ad (daha böyük və qalın) */
+.service-chip-main {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* qiymət + müddət */
+.service-chip-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
