@@ -665,103 +665,85 @@ export default function SettingsPage() {
                 </div>
               ))}
 
-            {serviceModalOpen && (
-              <div
-                className="modal-backdrop"
-                onClick={() => setServiceModalOpen(false)}
-              >
-                <div
-                  className="bottom-sheet"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="sheet-header">
-                    <div className="sheet-title">
-                      {editingService
-                        ? "Xidməti redaktə et"
-                        : "Yeni xidmət"}
-                    </div>
-                    <button
-                      type="button"
-                      className="icon-button"
-                      onClick={() => setServiceModalOpen(false)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="sheet-content">
-                    <form onSubmit={handleSaveService}>
-                      <div className="field-row">
-                        <label className="field-label">
-                          Xidmət adı
-                        </label>
-                        <input
-                          className="text-input full"
-                          value={serviceForm.name}
-                          onChange={(e) =>
-                            setServiceForm((prev) => ({
-                              ...prev,
-                              name: e.target.value
-                            }))
-                          }
-                        />
-                      </div>
-                      <div className="field-row">
-                        <label className="field-label">Qiymət (₼)</label>
-                        <input
-                          className="text-input"
-                          type="number"
-                          min={1}
-                          value={serviceForm.price}
-                          onChange={(e) =>
-                            setServiceForm((prev) => ({
-                              ...prev,
-                              price: e.target.value
-                            }))
-                          }
-                        />
-                      </div>
-                      <div className="field-row">
-                        <label className="field-label">
-                          Müddət (dəqiqə)
-                        </label>
-                        <input
-                          className="text-input"
-                          type="number"
-                          min={5}
-                          value={serviceForm.durationMinutes}
-                          onChange={(e) =>
-                            setServiceForm((prev) => ({
-                              ...prev,
-                              durationMinutes: e.target.value
-                            }))
-                          }
-                        />
-                      </div>
+{serviceModalOpen && (
+  <div
+    className="modal-backdrop"
+    onClick={() => setServiceModalOpen(false)}
+  >
+    <div
+      className="bottom-sheet"
+      style={{ maxWidth: 400, width: "90%", padding: "16px" }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="sheet-header">
+        <div className="sheet-title">
+          {editingService ? "Xidməti redaktə et" : "Yeni xidmət"}
+        </div>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={() => setServiceModalOpen(false)}
+        >
+          ✕
+        </button>
+      </div>
+      <div className="sheet-content">
+        <form onSubmit={handleSaveService}>
+          <div className="field-row">
+            <label className="field-label">Xidmət adı</label>
+            <input
+              className="text-input full"
+              value={serviceForm.name}
+              onChange={(e) =>
+                setServiceForm((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
+          </div>
+          <div className="field-row">
+            <label className="field-label">Qiymət (₼)</label>
+            <input
+              className="text-input"
+              type="number"
+              min={1}
+              value={serviceForm.price}
+              onChange={(e) =>
+                setServiceForm((prev) => ({ ...prev, price: e.target.value }))
+              }
+            />
+          </div>
+          <div className="field-row">
+            <label className="field-label">Müddət (dəqiqə)</label>
+            <input
+              className="text-input"
+              type="number"
+              min={5}
+              value={serviceForm.durationMinutes}
+              onChange={(e) =>
+                setServiceForm((prev) => ({ ...prev, durationMinutes: e.target.value }))
+              }
+            />
+          </div>
 
-                      {serviceError && (
-                        <div className="error-text">{serviceError}</div>
-                      )}
+          {serviceError && <div className="error-text">{serviceError}</div>}
 
-                      <div className="sheet-footer">
-                        <button
-                          type="button"
-                          className="secondary-btn"
-                          onClick={() => setServiceModalOpen(false)}
-                        >
-                          Bağla
-                        </button>
-                        <button
-                          type="submit"
-                          className="primary-btn"
-                        >
-                          Yadda saxla
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="sheet-footer">
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => setServiceModalOpen(false)}
+            >
+              Bağla
+            </button>
+            <button type="submit" className="primary-btn">
+              Yadda saxla
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+)}
+
           </div>
         )}
 
