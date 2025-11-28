@@ -2269,32 +2269,9 @@ body.dark-theme .service-chip:hover {
 }
 
 
-.work-hours-popup-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 50;
-}
-
-.work-hours-popup {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  min-width: 250px; /* smaller width */
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.time-popup-button {
-  width: 100%;
-  padding: 8px 12px;
-  text-align: left;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
+/* In your styles.css or index.css */
+.work-hours-row .time-selects select.text-input {
+  width: 50px;        /* smaller width */
+  font-size: 14px;    /* smaller font */
+  padding: 2px 4px;   /* less padding */
 }

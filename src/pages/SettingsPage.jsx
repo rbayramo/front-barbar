@@ -47,8 +47,6 @@ export default function SettingsPage() {
     message: ""
   });
   const [triggerError, setTriggerError] = useState("");
-  const [workHoursPopupOpen, setWorkHoursPopupOpen] = useState(false);
-
 
   // Public URL copy state
   const publicUrl = useMemo(() => {
@@ -487,106 +485,85 @@ export default function SettingsPage() {
 
 <div className="field-row">
   <label className="field-label">İş saatları</label>
-<div className="work-hours-popup-wrapper">
-  <button
-    type="button"
-    className="time-popup-button"
-    onClick={() => setWorkHoursPopupOpen(true)}
-  >
-    {toTimeInputValue(profileForm.workDayStartMinutes)} – {toTimeInputValue(profileForm.workDayEndMinutes)}
-  </button>
+  <div className="work-hours-row">
+    {/* Başlanğıc */}
+    <div className="work-hours-item">
+      <span>Başlanğıc</span>
+      <div className="time-selects">
+        <select
+          className="text-input"
+          value={String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayStartMinutes",
+              `${e.target.value}:${String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}`
+            )
+          }
+        >
+          {Array.from({ length: 24 }, (_, i) => (
+            <option key={i} value={String(i).padStart(2, "0")}>
+              {String(i).padStart(2, "0")}
+            </option>
+          ))}
+        </select>
 
-  {workHoursPopupOpen && (
-    <div
-      className="work-hours-popup-backdrop"
-      onClick={() => setWorkHoursPopupOpen(false)}
-    >
-      <div
-        className="work-hours-popup"
-        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
-      >
-        {/* Start Time */}
-        <div className="work-hours-item">
-          <span>Başlanğıc</span>
-          <div className="time-selects">
-            <select
-              className="text-input"
-              value={String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}
-              onChange={(e) =>
-                handleProfileTimeChange(
-                  "workDayStartMinutes",
-                  `${e.target.value}:${String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}`
-                )
-              }
-            >
-              {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={String(i).padStart(2, "0")}>
-                  {String(i).padStart(2, "0")}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="text-input"
-              value={String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}
-              onChange={(e) =>
-                handleProfileTimeChange(
-                  "workDayStartMinutes",
-                  `${String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}:${e.target.value}`
-                )
-              }
-            >
-              {["00", "15", "30", "45"].map((mm) => (
-                <option key={mm} value={mm}>{mm}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <span className="time-separator">–</span>
-
-        {/* End Time */}
-        <div className="work-hours-item">
-          <span>Bitmə</span>
-          <div className="time-selects">
-            <select
-              className="text-input"
-              value={String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}
-              onChange={(e) =>
-                handleProfileTimeChange(
-                  "workDayEndMinutes",
-                  `${e.target.value}:${String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}`
-                )
-              }
-            >
-              {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={String(i).padStart(2, "0")}>
-                  {String(i).padStart(2, "0")}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="text-input"
-              value={String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}
-              onChange={(e) =>
-                handleProfileTimeChange(
-                  "workDayEndMinutes",
-                  `${String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}:${e.target.value}`
-                )
-              }
-            >
-              {["00", "15", "30", "45"].map((mm) => (
-                <option key={mm} value={mm}>{mm}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <select
+          className="text-input"
+          value={String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayStartMinutes",
+              `${String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}:${e.target.value}`
+            )
+          }
+        >
+          {["00", "15", "30", "45"].map((mm) => (
+            <option key={mm} value={mm}>{mm}</option>
+          ))}
+        </select>
       </div>
     </div>
-  )}
-</div>
 
+    <span className="time-separator">–</span>
+
+    {/* Bitmə */}
+    <div className="work-hours-item">
+      <span>Bitmə</span>
+      <div className="time-selects">
+        <select
+          className="text-input"
+          value={String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayEndMinutes",
+              `${e.target.value}:${String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}`
+            )
+          }
+        >
+          {Array.from({ length: 24 }, (_, i) => (
+            <option key={i} value={String(i).padStart(2, "0")}>
+              {String(i).padStart(2, "0")}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="text-input"
+          value={String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayEndMinutes",
+              `${String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}:${e.target.value}`
+            )
+          }
+        >
+          {["00", "15", "30", "45"].map((mm) => (
+            <option key={mm} value={mm}>{mm}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  </div>
 </div>
 
 
