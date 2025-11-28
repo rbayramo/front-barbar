@@ -483,87 +483,89 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="field-row">
-                  <label className="field-label">İş saatları</label>
-/* START: simple 24h selects replacement */
-<div className="work-hours-row">
-  <div className="work-hours-item">
-    <span>Başlanğıc</span>
-    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
-      <select
-        className="text-input"
-        value={String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}
-        onChange={(e) =>
-          handleProfileTimeChange(
-            "workDayStartMinutes",
-            `${e.target.value}:${String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}`
-          )
-        }
-      >
-        {Array.from({ length: 24 }).map((_, i) => {
-          const hh = String(i).padStart(2, "0");
-          return <option key={hh} value={hh}>{hh}</option>;
-        })}
-      </select>
+<div className="field-row">
+  <label className="field-label">İş saatları</label>
+  <div className="work-hours-row">
+    {/* Başlanğıc */}
+    <div className="work-hours-item">
+      <span>Başlanğıc</span>
+      <div className="time-selects">
+        <select
+          className="text-input"
+          value={String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayStartMinutes",
+              `${e.target.value}:${String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}`
+            )
+          }
+        >
+          {Array.from({ length: 24 }, (_, i) => (
+            <option key={i} value={String(i).padStart(2, "0")}>
+              {String(i).padStart(2, "0")}
+            </option>
+          ))}
+        </select>
 
-      <select
-        className="text-input"
-        value={String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}
-        onChange={(e) =>
-          handleProfileTimeChange(
-            "workDayStartMinutes",
-            `${String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}:${e.target.value}`
-          )
-        }
-      >
-        {["00", "15", "30", "45"].map((mm) => (
-          <option key={mm} value={mm}>{mm}</option>
-        ))}
-      </select>
+        <select
+          className="text-input"
+          value={String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayStartMinutes",
+              `${String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}:${e.target.value}`
+            )
+          }
+        >
+          {["00", "15", "30", "45"].map((mm) => (
+            <option key={mm} value={mm}>{mm}</option>
+          ))}
+        </select>
+      </div>
     </div>
-  </div>
 
-  <span className="time-separator" style={{ margin: "0 8px" }}>–</span>
+    <span className="time-separator">–</span>
 
-  <div className="work-hours-item">
-    <span>Bitmə</span>
-    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
-      <select
-        className="text-input"
-        value={String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}
-        onChange={(e) =>
-          handleProfileTimeChange(
-            "workDayEndMinutes",
-            `${e.target.value}:${String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}`
-          )
-        }
-      >
-        {Array.from({ length: 24 }).map((_, i) => {
-          const hh = String(i).padStart(2, "0");
-          return <option key={hh} value={hh}>{hh}</option>;
-        })}
-      </select>
+    {/* Bitmə */}
+    <div className="work-hours-item">
+      <span>Bitmə</span>
+      <div className="time-selects">
+        <select
+          className="text-input"
+          value={String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayEndMinutes",
+              `${e.target.value}:${String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}`
+            )
+          }
+        >
+          {Array.from({ length: 24 }, (_, i) => (
+            <option key={i} value={String(i).padStart(2, "0")}>
+              {String(i).padStart(2, "0")}
+            </option>
+          ))}
+        </select>
 
-      <select
-        className="text-input"
-        value={String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}
-        onChange={(e) =>
-          handleProfileTimeChange(
-            "workDayEndMinutes",
-            `${String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}:${e.target.value}`
-          )
-        }
-      >
-        {["00", "15", "30", "45"].map((mm) => (
-          <option key={mm} value={mm}>{mm}</option>
-        ))}
-      </select>
+        <select
+          className="text-input"
+          value={String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}
+          onChange={(e) =>
+            handleProfileTimeChange(
+              "workDayEndMinutes",
+              `${String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}:${e.target.value}`
+            )
+          }
+        >
+          {["00", "15", "30", "45"].map((mm) => (
+            <option key={mm} value={mm}>{mm}</option>
+          ))}
+        </select>
+      </div>
     </div>
   </div>
 </div>
-/* END: simple 24h selects replacement */
 
-                </div>
 
                 {profileError && (
                   <div className="error-text">{profileError}</div>
@@ -665,85 +667,103 @@ export default function SettingsPage() {
                 </div>
               ))}
 
-{serviceModalOpen && (
-  <div
-    className="modal-backdrop"
-    onClick={() => setServiceModalOpen(false)}
-  >
-    <div
-      className="bottom-sheet"
-      style={{ maxWidth: 400, width: "90%", padding: "16px" }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="sheet-header">
-        <div className="sheet-title">
-          {editingService ? "Xidməti redaktə et" : "Yeni xidmət"}
-        </div>
-        <button
-          type="button"
-          className="icon-button"
-          onClick={() => setServiceModalOpen(false)}
-        >
-          ✕
-        </button>
-      </div>
-      <div className="sheet-content">
-        <form onSubmit={handleSaveService}>
-          <div className="field-row">
-            <label className="field-label">Xidmət adı</label>
-            <input
-              className="text-input full"
-              value={serviceForm.name}
-              onChange={(e) =>
-                setServiceForm((prev) => ({ ...prev, name: e.target.value }))
-              }
-            />
-          </div>
-          <div className="field-row">
-            <label className="field-label">Qiymət (₼)</label>
-            <input
-              className="text-input"
-              type="number"
-              min={1}
-              value={serviceForm.price}
-              onChange={(e) =>
-                setServiceForm((prev) => ({ ...prev, price: e.target.value }))
-              }
-            />
-          </div>
-          <div className="field-row">
-            <label className="field-label">Müddət (dəqiqə)</label>
-            <input
-              className="text-input"
-              type="number"
-              min={5}
-              value={serviceForm.durationMinutes}
-              onChange={(e) =>
-                setServiceForm((prev) => ({ ...prev, durationMinutes: e.target.value }))
-              }
-            />
-          </div>
+            {serviceModalOpen && (
+              <div
+                className="modal-backdrop"
+                onClick={() => setServiceModalOpen(false)}
+              >
+                <div
+                  className="bottom-sheet"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="sheet-header">
+                    <div className="sheet-title">
+                      {editingService
+                        ? "Xidməti redaktə et"
+                        : "Yeni xidmət"}
+                    </div>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => setServiceModalOpen(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="sheet-content">
+                    <form onSubmit={handleSaveService}>
+                      <div className="field-row">
+                        <label className="field-label">
+                          Xidmət adı
+                        </label>
+                        <input
+                          className="text-input full"
+                          value={serviceForm.name}
+                          onChange={(e) =>
+                            setServiceForm((prev) => ({
+                              ...prev,
+                              name: e.target.value
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="field-row">
+                        <label className="field-label">Qiymət (₼)</label>
+                        <input
+                          className="text-input"
+                          type="number"
+                          min={1}
+                          value={serviceForm.price}
+                          onChange={(e) =>
+                            setServiceForm((prev) => ({
+                              ...prev,
+                              price: e.target.value
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="field-row">
+                        <label className="field-label">
+                          Müddət (dəqiqə)
+                        </label>
+                        <input
+                          className="text-input"
+                          type="number"
+                          min={5}
+                          value={serviceForm.durationMinutes}
+                          onChange={(e) =>
+                            setServiceForm((prev) => ({
+                              ...prev,
+                              durationMinutes: e.target.value
+                            }))
+                          }
+                        />
+                      </div>
 
-          {serviceError && <div className="error-text">{serviceError}</div>}
+                      {serviceError && (
+                        <div className="error-text">{serviceError}</div>
+                      )}
 
-          <div className="sheet-footer">
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={() => setServiceModalOpen(false)}
-            >
-              Bağla
-            </button>
-            <button type="submit" className="primary-btn">
-              Yadda saxla
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-)}
-
+                      <div className="sheet-footer">
+                        <button
+                          type="button"
+                          className="secondary-btn"
+                          onClick={() => setServiceModalOpen(false)}
+                        >
+                          Bağla
+                        </button>
+                        <button
+                          type="submit"
+                          className="primary-btn"
+                        >
+                          Yadda saxla
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
