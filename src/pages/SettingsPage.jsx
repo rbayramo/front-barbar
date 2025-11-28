@@ -103,6 +103,25 @@ export default function SettingsPage() {
     }
   }
 
+  function SmallSelect({ value, options, onChange }) {
+  return (
+    <div className="small-select-wrapper">
+      <select
+        className="small-select"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+
   async function loadTriggers() {
     try {
       const res = await api.get("/triggers");
@@ -490,37 +509,28 @@ export default function SettingsPage() {
     <div className="work-hours-item">
       <span>Başlanğıc</span>
       <div className="time-selects">
-        <select
-          className="text-input"
-          value={String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}
-          onChange={(e) =>
-            handleProfileTimeChange(
-              "workDayStartMinutes",
-              `${e.target.value}:${String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}`
-            )
-          }
-        >
-          {Array.from({ length: 24 }, (_, i) => (
-            <option key={i} value={String(i).padStart(2, "0")}>
-              {String(i).padStart(2, "0")}
-            </option>
-          ))}
-        </select>
+<SmallSelect
+  value={String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}
+  options={Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"))}
+  onChange={(val) =>
+    handleProfileTimeChange(
+      "workDayStartMinutes",
+      `${val}:${String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}`
+    )
+  }
+/>
 
-        <select
-          className="text-input"
-          value={String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}
-          onChange={(e) =>
-            handleProfileTimeChange(
-              "workDayStartMinutes",
-              `${String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}:${e.target.value}`
-            )
-          }
-        >
-          {["00", "15", "30", "45"].map((mm) => (
-            <option key={mm} value={mm}>{mm}</option>
-          ))}
-        </select>
+<SmallSelect
+  value={String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}
+  options={["00", "15", "30", "45"]}
+  onChange={(val) =>
+    handleProfileTimeChange(
+      "workDayStartMinutes",
+      `${String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}:${val}`
+    )
+  }
+/>
+
       </div>
     </div>
 

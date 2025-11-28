@@ -2269,9 +2269,14 @@ body.dark-theme .service-chip:hover {
 }
 
 
-/* In your styles.css or index.css */
-.work-hours-row .time-selects select.text-input {
-  width: 50px;        /* smaller width */
-  font-size: 14px;    /* smaller font */
-  padding: 2px 4px;   /* less padding */
+.small-select-wrapper {
+  display: inline-block;
+  width: 50px; /* compact width */
+}
+
+.small-select {
+  width: 100%;
+  font-size: 14px; /* smaller font */
+  padding: 2px 4px;
+  height: 28px; /* compact height */
 }
