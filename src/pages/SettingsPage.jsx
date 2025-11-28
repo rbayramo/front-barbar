@@ -485,41 +485,84 @@ export default function SettingsPage() {
 
                 <div className="field-row">
                   <label className="field-label">İş saatları</label>
-                  <div className="work-hours-row">
-                    <div className="work-hours-item">
-                      <span>Başlanğıc</span>
-                      <input
-                        className="text-input"
-                        type="time"
-                        value={toTimeInputValue(
-                          profileForm.workDayStartMinutes
-                        )}
-                        onChange={(e) =>
-                          handleProfileTimeChange(
-                            "workDayStartMinutes",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                    <span className="time-separator">–</span>
-                    <div className="work-hours-item">
-                      <span>Bitmə</span>
-                      <input
-                        className="text-input"
-                        type="time"
-                        value={toTimeInputValue(
-                          profileForm.workDayEndMinutes
-                        )}
-                        onChange={(e) =>
-                          handleProfileTimeChange(
-                            "workDayEndMinutes",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
+/* START: simple 24h selects replacement */
+<div className="work-hours-row">
+  <div className="work-hours-item">
+    <span>Başlanğıc</span>
+    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+      <select
+        className="text-input"
+        value={String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}
+        onChange={(e) =>
+          handleProfileTimeChange(
+            "workDayStartMinutes",
+            `${e.target.value}:${String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}`
+          )
+        }
+      >
+        {Array.from({ length: 24 }).map((_, i) => {
+          const hh = String(i).padStart(2, "0");
+          return <option key={hh} value={hh}>{hh}</option>;
+        })}
+      </select>
+
+      <select
+        className="text-input"
+        value={String(profileForm.workDayStartMinutes % 60).padStart(2, "0")}
+        onChange={(e) =>
+          handleProfileTimeChange(
+            "workDayStartMinutes",
+            `${String(Math.floor(profileForm.workDayStartMinutes / 60)).padStart(2, "0")}:${e.target.value}`
+          )
+        }
+      >
+        {["00", "15", "30", "45"].map((mm) => (
+          <option key={mm} value={mm}>{mm}</option>
+        ))}
+      </select>
+    </div>
+  </div>
+
+  <span className="time-separator" style={{ margin: "0 8px" }}>–</span>
+
+  <div className="work-hours-item">
+    <span>Bitmə</span>
+    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+      <select
+        className="text-input"
+        value={String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}
+        onChange={(e) =>
+          handleProfileTimeChange(
+            "workDayEndMinutes",
+            `${e.target.value}:${String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}`
+          )
+        }
+      >
+        {Array.from({ length: 24 }).map((_, i) => {
+          const hh = String(i).padStart(2, "0");
+          return <option key={hh} value={hh}>{hh}</option>;
+        })}
+      </select>
+
+      <select
+        className="text-input"
+        value={String(profileForm.workDayEndMinutes % 60).padStart(2, "0")}
+        onChange={(e) =>
+          handleProfileTimeChange(
+            "workDayEndMinutes",
+            `${String(Math.floor(profileForm.workDayEndMinutes / 60)).padStart(2, "0")}:${e.target.value}`
+          )
+        }
+      >
+        {["00", "15", "30", "45"].map((mm) => (
+          <option key={mm} value={mm}>{mm}</option>
+        ))}
+      </select>
+    </div>
+  </div>
+</div>
+/* END: simple 24h selects replacement */
+
                 </div>
 
                 {profileError && (
