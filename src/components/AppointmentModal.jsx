@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import api from "../api/client";
-import PhoneInputAz from "./PhoneInputAz";
+import InternationalPhoneInput from "./InternationalPhoneInput";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import { toUtcIso } from "../utils/time";
 
 const DURATIONS = [15, 30, 45, 60, 120, 240];
@@ -28,7 +29,7 @@ export default function AppointmentModal({
 
   const [createNew, setCreateNew] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newPhoneDigits, setNewPhoneDigits] = useState("");
+  const [newPhoneNumber, setNewPhoneNumber] = useState("");
   const [error, setError] = useState("");
 
   // Xidmətləri modal açılan kimi yüklə
@@ -86,7 +87,7 @@ export default function AppointmentModal({
     setSearchResults([]);
     setCreateNew(false);
     setNewName("");
-    setNewPhoneDigits("");
+    setNewPhoneNumber("");
     setError("");
   }, [open, appointment, initialDate]);
 
@@ -150,15 +151,14 @@ export default function AppointmentModal({
       setError("Müştərinin adını yazın.");
       return null;
     }
-    if (newPhoneDigits.length !== 9) {
-      setError("Telefon nömrəsi tam doldurulmalıdır (9 rəqəm).");
+    if (!newPhoneNumber || !isValidPhoneNumber(newPhoneNumber)) {
+      setError("Telefon nömrəsi tam doldurulmalıdır.");
       return null;
     }
     try {
-      const phone = "+994" + newPhoneDigits;
       const res = await api.post("/customers", {
         name: newName.trim(),
-        phone
+        phone: newPhoneNumber
       });
       return res.data;
     } catch (err) {
@@ -376,9 +376,9 @@ export default function AppointmentModal({
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                   />
-                  <PhoneInputAz
-                    value={newPhoneDigits}
-                    onChange={setNewPhoneDigits}
+                  <InternationalPhoneInput
+                    value={newPhoneNumber}
+                    onChange={setNewPhoneNumber}
                   />
                   <button
                     type="button"
@@ -386,7 +386,7 @@ export default function AppointmentModal({
                     onClick={() => {
                       setCreateNew(false);
                       setNewName("");
-                      setNewPhoneDigits("");
+                      setNewPhoneNumber("");
                     }}
                   >
                     Geriyə

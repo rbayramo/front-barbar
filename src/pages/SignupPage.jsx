@@ -2,7 +2,8 @@ import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/client";
 import { AuthContext } from "../context/AuthContext";
-import PhoneInputAz from "../components/PhoneInputAz";
+import InternationalPhoneInput from "../components/InternationalPhoneInput";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ export default function SignupPage() {
 
   const [name, setName] = useState("");
   const [shopName, setShopName] = useState("");
-  const [phoneDigits, setPhoneDigits] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -18,17 +19,16 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
-    if (phoneDigits.length !== 9) {
-      setError("Telefon nömrəsi tam doldurulmalıdır (9 rəqəm).");
+    if (!phoneNumber || !isValidPhoneNumber(phoneNumber)) {
+      setError("Telefon nömrəsi tam doldurulmalıdır.");
       return;
     }
 
     try {
-      const phone = "+994" + phoneDigits;
       const res = await api.post("/auth/signup", {
         name,
         shopName,
-        phone,
+        phone: phoneNumber,
         password
       });
       login(res.data.token, res.data.barber);
@@ -72,9 +72,9 @@ export default function SignupPage() {
           />
 
           <label className="field-label">Telefon nömrəsi</label>
-          <PhoneInputAz
-            value={phoneDigits}
-            onChange={setPhoneDigits}
+          <InternationalPhoneInput
+            value={phoneNumber}
+            onChange={setPhoneNumber}
             required
           />
 
