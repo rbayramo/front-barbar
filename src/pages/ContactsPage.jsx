@@ -3,7 +3,8 @@ import { format, differenceInCalendarDays } from "date-fns";
 import TopBar from "../components/TopBar";
 import BottomNav from "../components/BottomNav";
 import api from "../api/client";
-import PhoneInputAz from "../components/PhoneInputAz";
+import InternationalPhoneInput from "../components/InternationalPhoneInput";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 export default function ContactsPage() {
   const [q, setQ] = useState("");
@@ -12,7 +13,7 @@ export default function ContactsPage() {
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: "", phoneDigits: "", note: "" });
+  const [form, setForm] = useState({ name: "", phoneNumber: "", note: "" });
   const [error, setError] = useState("");
 
   async function loadContacts(query) {
@@ -40,21 +41,16 @@ export default function ContactsPage() {
 
   function openNew() {
     setEditing(null);
-    setForm({ name: "", phoneDigits: "", note: "" });
+    setForm({ name: "", phoneNumber: "", note: "" });
     setError("");
     setSheetOpen(true);
   }
 
   function openEdit(contact) {
-    const numbers = (contact.phone || "").replace(/\D/g, "");
-    const localDigits = numbers.startsWith("994")
-      ? numbers.slice(3)
-      : numbers;
-
     setEditing(contact);
     setForm({
       name: contact.name || "",
-      phoneDigits: localDigits,
+      phoneNumber: contact.phone || "",
       note: contact.note || ""
     });
     setError("");
@@ -70,24 +66,22 @@ export default function ContactsPage() {
       return;
     }
 
-    if (form.phoneDigits.length !== 9) {
-      setError("Telefon nömrəsi tam doldurulmalıdır (9 rəqəm).");
+    if (!form.phoneNumber || !isValidPhoneNumber(form.phoneNumber)) {
+      setError("Telefon nömrəsi tam doldurulmalıdır.");
       return;
     }
-
-    const phone = "+994" + form.phoneDigits;
 
     try {
       if (editing && editing._id) {
         await api.put(`/customers/${editing._id}`, {
           name: form.name.trim(),
-          phone,
+          phone: form.phoneNumber,
           note: form.note
         });
       } else {
         await api.post("/customers", {
           name: form.name.trim(),
-          phone,
+          phone: form.phoneNumber,
           note: form.note
         });
       }
@@ -219,10 +213,10 @@ export default function ContactsPage() {
                   </div>
                   <div className="field-row">
                     <label className="field-label">Telefon nömrəsi</label>
-                    <PhoneInputAz
-                      value={form.phoneDigits}
+                    <InternationalPhoneInput
+                      value={form.phoneNumber}
                       onChange={(val) =>
-                        setForm({ ...form, phoneDigits: val })
+                        setForm({ ...form, phoneNumber: val })
                       }
                     />
                   </div>

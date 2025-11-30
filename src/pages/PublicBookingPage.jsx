@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
 import api from "../api/client";
-import PhoneInputAz from "../components/PhoneInputAz";
+import InternationalPhoneInput from "../components/InternationalPhoneInput";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import { toUtcIso } from "../utils/time";
 
 function getDayRange(date) {
@@ -32,7 +33,7 @@ export default function PublicBookingPage() {
   const [appointments, setAppointments] = useState([]);
 
   const [name, setName] = useState("");
-  const [phoneDigits, setPhoneDigits] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedSlotIso, setSelectedSlotIso] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -71,8 +72,8 @@ export default function PublicBookingPage() {
       const stored = window.localStorage.getItem(
         `${STORAGE_KEY_PREFIX}:${barberId}`
       );
-      if (stored && /^\d{9}$/.test(stored)) {
-        setPhoneDigits(stored);
+      if (stored) {
+        setPhoneNumber(stored);
       }
     } catch (e) {
       // ignore
@@ -84,15 +85,15 @@ export default function PublicBookingPage() {
     if (!barberId || typeof window === "undefined") return;
     const key = `${STORAGE_KEY_PREFIX}:${barberId}`;
     try {
-      if (phoneDigits && phoneDigits.length === 9) {
-        window.localStorage.setItem(key, phoneDigits);
+      if (phoneNumber && isValidPhoneNumber(phoneNumber)) {
+        window.localStorage.setItem(key, phoneNumber);
       } else {
         window.localStorage.removeItem(key);
       }
     } catch (e) {
       // ignore
     }
-  }, [phoneDigits, barberId]);
+  }, [phoneNumber, barberId]);
 
   // Bərbər məlumatı və xidmətlər
   useEffect(() => {
@@ -147,7 +148,7 @@ export default function PublicBookingPage() {
   // Eyni nömrə üçün növbəti gələcək görüşü backend-dən soruş
   useEffect(() => {
     if (!barberId || bookingDisabled) return;
-    if (!phoneDigits || phoneDigits.length !== 9) {
+    if (!phoneNumber || !isValidPhoneNumber(phoneNumber)) {
       setExistingAppointment(null);
       setUpdatingAppointmentId(null);
       return;
@@ -159,7 +160,7 @@ export default function PublicBookingPage() {
           `/public/barbers/${barberId}/appointments`,
           {
             params: {
-              phone: "+994" + phoneDigits
+              phone: phoneNumber
             }
           }
         );
@@ -175,7 +176,7 @@ export default function PublicBookingPage() {
         setUpdatingAppointmentId(null);
       }
     })();
-  }, [barberId, phoneDigits, bookingDisabled]);
+  }, [barberId, phoneNumber, bookingDisabled]);
 
   const selectedServices = useMemo(
     () =>
@@ -308,8 +309,8 @@ export default function PublicBookingPage() {
   async function handleCancelAppointment() {
     if (
       !existingAppointment ||
-      !phoneDigits ||
-      phoneDigits.length !== 9
+      !phoneNumber ||
+      !isValidPhoneNumber(phoneNumber)
     ) {
       return;
     }
@@ -323,7 +324,7 @@ export default function PublicBookingPage() {
       setLoading(true);
       await api.post(`/public/barbers/${barberId}/cancel`, {
         appointmentId: existingAppointment.id || existingAppointment._id,
-        phone: "+994" + phoneDigits
+        phone: phoneNumber
       });
       const msg = "Görüşünüz ləğv edildi.";
       setSuccess(msg);
@@ -373,7 +374,7 @@ export default function PublicBookingPage() {
 
     // field-level yoxlama
     const nameMissing = !name.trim();
-    const phoneMissing = phoneDigits.length !== 9;
+    const phoneMissing = !phoneNumber || !isValidPhoneNumber(phoneNumber);
     const servicesMissing = !selectedServiceIds.length;
     const slotMissing = !selectedSlotIso;
 
@@ -396,7 +397,7 @@ export default function PublicBookingPage() {
 
       await api.post(`/public/barbers/${barberId}/book`, {
         name: name.trim(),
-        phone: "+994" + phoneDigits,
+        phone: phoneNumber,
         startTime: toUtcIso(startLocal),
         serviceIds: selectedServiceIds,
         existingAppointmentId: updatingAppointmentId || undefined
@@ -441,12 +442,12 @@ export default function PublicBookingPage() {
       setAppointments(res.data || []);
 
       try {
-        if (phoneDigits && phoneDigits.length === 9) {
+        if (phoneNumber && isValidPhoneNumber(phoneNumber)) {
           const resUpcoming = await api.get(
             `/public/barbers/${barberId}/appointments`,
             {
               params: {
-                phone: "+994" + phoneDigits
+                phone: phoneNumber
               }
             }
           );
@@ -491,7 +492,10 @@ export default function PublicBookingPage() {
   }
 
   const hasUpcomingForBanner =
-    !!existingAppointment && phoneDigits.length === 9 && !bookingDisabled;
+    !!existingAppointment &&
+    phoneNumber &&
+    isValidPhoneNumber(phoneNumber) &&
+    !bookingDisabled;
 
   return (
     <div className="public-booking-shell">
@@ -593,7 +597,7 @@ export default function PublicBookingPage() {
                       className="booking-summary-sub"
                       style={{ fontSize: 12, opacity: 0.9 }}
                     >
-                      {existingAppointment.name} · +994{phoneDigits}
+                      {existingAppointment.name} · {phoneNumber}
                     </div>
                   )}
                 </div>
@@ -803,14 +807,9 @@ export default function PublicBookingPage() {
                   >
                     Telefon nömrəsi
                   </label>
-                  <PhoneInputAz
-                    value={phoneDigits}
-                    onChange={(value) => {
-                      setPhoneDigits(value);
-                      if (missingPhone && value && value.length === 9) {
-                        setMissingPhone(false);
-                      }
-                    }}
+                  <InternationalPhoneInput
+                    value={phoneNumber}
+                    onChange={setPhoneNumber}
                     required
                   />
                 </div>

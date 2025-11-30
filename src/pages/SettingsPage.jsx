@@ -10,6 +10,8 @@ import BottomNav from "../components/BottomNav";
 import api from "../api/client";
 import { AuthContext } from "../context/AuthContext";
 import TriggersScreen from "../components/TriggersScreen";
+import InternationalPhoneInput from "../components/InternationalPhoneInput";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 export default function SettingsPage() {
   const { barber, login } = useContext(AuthContext);
@@ -19,7 +21,7 @@ export default function SettingsPage() {
   // Profile form
   const [profileForm, setProfileForm] = useState({
     shopName: "",
-    phoneDigits: "",
+    phoneNumber: "",
     defaultDuration: 30,
     workDayStartMinutes: 8 * 60,
     workDayEndMinutes: 20 * 60
@@ -62,12 +64,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!barber) return;
-    const numbers = (barber.phone || "").replace(/\D/g, "");
-    const digits = numbers.startsWith("994") ? numbers.slice(3) : numbers;
 
     setProfileForm({
       shopName: barber.shopName || "",
-      phoneDigits: digits,
+      phoneNumber: barber.phone || "",
       defaultDuration: barber.defaultDuration || 30,
       workDayStartMinutes:
         typeof barber.workDayStartMinutes === "number"
@@ -160,16 +160,16 @@ export default function SettingsPage() {
       return;
     }
 
-    if (profileForm.phoneDigits.replace(/\D/g, "").length !== 9) {
+    if (!profileForm.phoneNumber || !isValidPhoneNumber(profileForm.phoneNumber)) {
       setProfileError(
-        "Telefon nömrəsi tam doldurulmalıdır (9 rəqəm, +994 olmadan)."
+        "Telefon nömrəsi tam doldurulmalıdır."
       );
       return;
     }
 
     const payload = {
       shopName: profileForm.shopName.trim(),
-      phone: "+994" + profileForm.phoneDigits.replace(/\D/g, ""),
+      phone: profileForm.phoneNumber,
       defaultDuration:
         Number(profileForm.defaultDuration) > 0
           ? Number(profileForm.defaultDuration)
@@ -475,31 +475,15 @@ export default function SettingsPage() {
 
                 <div className="field-row">
                   <label className="field-label">Telefon nömrəsi</label>
-                  <div className="phone-input-row">
-                    <select
-                      className="phone-country-select"
-                      value="+994"
-                      onChange={() => {}}
-                    >
-                      <option value="+994">
-                        Azərbaycan (+994)
-                      </option>
-                    </select>
-                    <input
-                      className="phone-number-input"
-                      type="tel"
-                      value={profileForm.phoneDigits}
-                      onChange={(e) =>
-                        setProfileForm((prev) => ({
-                          ...prev,
-                          phoneDigits: e.target.value
-                            .replace(/\D/g, "")
-                            .slice(0, 9)
-                        }))
-                      }
-                      placeholder="(__) ___ __ __"
-                    />
-                  </div>
+                  <InternationalPhoneInput
+                    value={profileForm.phoneNumber}
+                    onChange={(value) =>
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        phoneNumber: value
+                      }))
+                    }
+                  />
                 </div>
 
 <div className="field-row">
